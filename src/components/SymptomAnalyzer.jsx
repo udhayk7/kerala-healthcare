@@ -1,505 +1,292 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
+  Paper,
+  Typography,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+  Button,
+  Alert,
+  Grid,
   Card,
   CardContent,
-  Typography,
-  TextField,
-  Button,
-  Autocomplete,
-  CircularProgress,
   Chip,
-  Stack,
-  Grid,
   Divider,
-  Alert,
-  LinearProgress,
-  Fade,
+  TextField,
+  Autocomplete,
+  CircularProgress
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  Add as AddIcon,
-  ArrowForward as ArrowForwardIcon,
-  LocalHospital as HospitalIcon,
-  AccessTime as TimeIcon,
-  Warning as WarningIcon,
-  CheckCircle as CheckCircleIcon,
-} from '@mui/icons-material';
-import { analyzeSymptoms } from '../data/diseaseMapping';
-import HospitalFinder from './HospitalFinder';
 
-const symptoms = [
-  "Headache",
-  "Fever",
-  "Cough",
-  "Fatigue",
-  "Shortness of breath",
-  "Muscle aches",
-  "Chills",
-  "Sore throat",
-  "Loss of taste or smell",
-  "Congestion",
-  // Add more symptoms as needed
+const SYMPTOMS = [
+  // General Symptoms
+  { id: 1, name: 'Fever', category: 'General', severity: 'medium' },
+  { id: 2, name: 'Fatigue', category: 'General', severity: 'low' },
+  { id: 3, name: 'Body Aches', category: 'General', severity: 'medium' },
+  { id: 4, name: 'Weakness', category: 'General', severity: 'low' },
+  { id: 5, name: 'Chills', category: 'General', severity: 'medium' },
+  
+  // Respiratory Symptoms
+  { id: 6, name: 'Cough', category: 'Respiratory', severity: 'medium' },
+  { id: 7, name: 'Shortness of breath', category: 'Respiratory', severity: 'high' },
+  { id: 8, name: 'Sore throat', category: 'Respiratory', severity: 'low' },
+  { id: 9, name: 'Runny nose', category: 'Respiratory', severity: 'low' },
+  { id: 10, name: 'Chest pain', category: 'Respiratory', severity: 'high' },
+  
+  // Gastrointestinal Symptoms
+  { id: 11, name: 'Nausea', category: 'Gastrointestinal', severity: 'medium' },
+  { id: 12, name: 'Vomiting', category: 'Gastrointestinal', severity: 'medium' },
+  { id: 13, name: 'Diarrhea', category: 'Gastrointestinal', severity: 'medium' },
+  { id: 14, name: 'Abdominal pain', category: 'Gastrointestinal', severity: 'high' },
+  { id: 15, name: 'Loss of appetite', category: 'Gastrointestinal', severity: 'low' },
+  
+  // Neurological Symptoms
+  { id: 16, name: 'Headache', category: 'Neurological', severity: 'medium' },
+  { id: 17, name: 'Dizziness', category: 'Neurological', severity: 'medium' },
+  { id: 18, name: 'Confusion', category: 'Neurological', severity: 'high' },
+  { id: 19, name: 'Memory problems', category: 'Neurological', severity: 'high' },
+  { id: 20, name: 'Difficulty concentrating', category: 'Neurological', severity: 'medium' },
+  
+  // Musculoskeletal Symptoms
+  { id: 21, name: 'Joint pain', category: 'Musculoskeletal', severity: 'medium' },
+  { id: 22, name: 'Muscle pain', category: 'Musculoskeletal', severity: 'medium' },
+  { id: 23, name: 'Back pain', category: 'Musculoskeletal', severity: 'medium' },
+  { id: 24, name: 'Neck pain', category: 'Musculoskeletal', severity: 'medium' },
+  { id: 25, name: 'Stiffness', category: 'Musculoskeletal', severity: 'low' },
+  
+  // Skin Symptoms
+  { id: 26, name: 'Rash', category: 'Skin', severity: 'medium' },
+  { id: 27, name: 'Itching', category: 'Skin', severity: 'low' },
+  { id: 28, name: 'Skin discoloration', category: 'Skin', severity: 'medium' },
+  { id: 29, name: 'Swelling', category: 'Skin', severity: 'medium' },
+  { id: 30, name: 'Bruising', category: 'Skin', severity: 'medium' },
+  
+  // Mental Health Symptoms
+  { id: 31, name: 'Anxiety', category: 'Mental Health', severity: 'high' },
+  { id: 32, name: 'Depression', category: 'Mental Health', severity: 'high' },
+  { id: 33, name: 'Sleep problems', category: 'Mental Health', severity: 'medium' },
+  { id: 34, name: 'Mood changes', category: 'Mental Health', severity: 'medium' },
+  { id: 35, name: 'Irritability', category: 'Mental Health', severity: 'medium' }
 ];
 
-function SymptomAnalyzer() {
+const getSeverityColor = (severity) => {
+  switch (severity) {
+    case 'high':
+      return 'error';
+    case 'medium':
+      return 'warning';
+    case 'low':
+      return 'success';
+    default:
+      return 'default';
+  }
+};
+
+const SymptomAnalyzer = () => {
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [analysisResults, setAnalysisResults] = useState(null);
-  const [showHospitalFinder, setShowHospitalFinder] = useState(false);
-  const [selectedSpecialty, setSelectedSpecialty] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [analyzing, setAnalyzing] = useState(false);
+  const [result, setResult] = useState(null);
 
-  const handleAddSymptom = (symptom) => {
-    if (symptom && !selectedSymptoms.includes(symptom)) {
-      setSelectedSymptoms([...selectedSymptoms, symptom]);
-      setInputValue('');
-    }
-  };
-
-  const handleRemoveSymptom = (symptomToRemove) => {
-    setSelectedSymptoms(selectedSymptoms.filter(symptom => symptom !== symptomToRemove));
+  const handleSymptomToggle = (symptom) => {
+    setSelectedSymptoms(prev => {
+      const exists = prev.find(s => s.id === symptom.id);
+      if (exists) {
+        return prev.filter(s => s.id !== symptom.id);
+      } else {
+        return [...prev, symptom];
+      }
+    });
   };
 
   const handleAnalyze = () => {
-    setLoading(true);
+    setAnalyzing(true);
+    // Simulate analysis
     setTimeout(() => {
-      const analysis = analyzeSymptoms(selectedSymptoms);
-      setAnalysisResults(analysis);
-      setLoading(false);
-      setShowResults(true);
+      const severityCount = selectedSymptoms.reduce((acc, symptom) => {
+        acc[symptom.severity] = (acc[symptom.severity] || 0) + 1;
+        return acc;
+      }, {});
+
+      let recommendation;
+      const totalSymptoms = selectedSymptoms.length;
+      const highSeverity = severityCount.high || 0;
+      const mediumSeverity = severityCount.medium || 0;
+
+      if (highSeverity >= 2 || (highSeverity >= 1 && mediumSeverity >= 2)) {
+        recommendation = {
+          urgency: 'high',
+          message: 'Please seek immediate medical attention.',
+          action: 'Visit the nearest emergency room or contact your healthcare provider immediately.'
+        };
+      } else if (mediumSeverity >= 3 || (highSeverity >= 1)) {
+        recommendation = {
+          urgency: 'medium',
+          message: 'Medical consultation recommended.',
+          action: 'Schedule an appointment with your healthcare provider within 24 hours.'
+        };
+      } else {
+        recommendation = {
+          urgency: 'low',
+          message: 'Monitor your symptoms.',
+          action: 'Rest and monitor your symptoms. If they persist or worsen, consult a healthcare provider.'
+        };
+      }
+
+      setResult({
+        recommendation,
+        symptoms: selectedSymptoms,
+        severityBreakdown: severityCount
+      });
+      setAnalyzing(false);
     }, 1500);
   };
 
-  const handleFindHospitals = (specialty) => {
-    setSelectedSpecialty(specialty || 'General Medicine');
-    setShowHospitalFinder(true);
+  const handleReset = () => {
+    setSelectedSymptoms([]);
+    setResult(null);
+    setSearchTerm('');
   };
 
-  return (
-    <>
-      <Box sx={{ 
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center'
-      }}>
-        <Box sx={{ 
-          width: '100%',
-          maxWidth: '800px',
-          mb: 6,
-          textAlign: 'center',
-          px: { xs: 2, sm: 3 }
-        }}>
-          <Typography 
-            variant="h2" 
-            sx={{ 
-              fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
-              fontWeight: 800,
-              background: 'linear-gradient(to right, #2563eb, #7c3aed)',
-              backgroundClip: 'text',
-              WebkitBackgroundClip: 'text',
-              color: 'transparent',
-              mb: 2,
-            }}
-          >
-            AI-Powered Symptom Analysis
-          </Typography>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              color: 'text.secondary',
-              fontSize: { xs: '1rem', sm: '1.125rem' },
-              lineHeight: 1.6,
-            }}
-          >
-            Get instant insights about your health using our advanced AI system.
-            Simply describe your symptoms and receive personalized recommendations.
-          </Typography>
-        </Box>
-
-        <Grid 
-          container 
-          spacing={4} 
-          sx={{ 
-            width: '100%',
-            maxWidth: '1200px',
-            mx: 'auto',
-            px: { xs: 2, sm: 3 }
-          }}
-        >
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: 480,
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                overflow: 'visible',
-                width: '100%',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: -2,
-                  left: -2,
-                  right: -2,
-                  bottom: -2,
-                  background: 'linear-gradient(45deg, #2563eb, #7c3aed)',
-                  borderRadius: '18px',
-                  zIndex: -1,
-                  opacity: 0.1,
-                },
-              }}
-            >
-              <CardContent sx={{ 
-                flex: 1, 
-                display: 'flex', 
-                flexDirection: 'column',
-                p: { xs: 2, sm: 4 },
-                width: '100%'
-              }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 1,
-                    color: 'text.primary',
-                    fontSize: { xs: '1.5rem', sm: '1.75rem' },
-                  }}
-                >
-                  Describe Your Symptoms
-                </Typography>
-                <Typography
-                  variant="body1"
-                  sx={{
-                    mb: 4,
-                    color: 'text.secondary',
-                    fontSize: '1rem',
-                    lineHeight: 1.6,
-                  }}
-                >
-                  Help us understand what you're experiencing for a more accurate analysis
-                </Typography>
-
-                <Autocomplete
-                  value={null}
-                  onChange={(event, newValue) => handleAddSymptom(newValue)}
-                  inputValue={inputValue}
-                  onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
-                  options={symptoms.filter(symptom => !selectedSymptoms.includes(symptom))}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Type your symptoms"
-                      variant="outlined"
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <SearchIcon sx={{ color: 'text.secondary', mr: 1 }} />
-                        ),
-                      }}
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          backgroundColor: 'rgba(255, 255, 255, 0.8)',
-                          backdropFilter: 'blur(8px)',
-                          borderRadius: 2,
-                          transition: 'all 0.2s',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          '&:hover, &.Mui-focused': {
-                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                            borderColor: 'primary.main',
-                            boxShadow: '0 0 0 4px rgba(37, 99, 235, 0.1)',
-                          },
-                        },
-                      }}
-                    />
-                  )}
-                />
-
-                <Box sx={{ 
-                  mt: 3, 
-                  mb: 4, 
-                  flex: 1,
-                  width: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}>
-                  <Stack 
-                    direction="row" 
-                    spacing={1} 
-                    flexWrap="wrap" 
-                    useFlexGap 
-                    sx={{ 
-                      justifyContent: 'center',
-                      width: '100%',
-                      gap: 1
-                    }}
-                  >
-                    {selectedSymptoms.map((symptom) => (
-                      <Chip
-                        key={symptom}
-                        label={symptom}
-                        onDelete={() => handleRemoveSymptom(symptom)}
-                        sx={{
-                          m: 0.5,
-                          backgroundColor: 'rgba(37, 99, 235, 0.1)',
-                          color: 'primary.main',
-                          borderRadius: '8px',
-                          '& .MuiChip-deleteIcon': {
-                            color: 'primary.main',
-                            '&:hover': {
-                              color: 'primary.dark',
-                            },
-                          },
-                          '&:hover': {
-                            backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                          },
-                        }}
-                      />
-                    ))}
-                  </Stack>
-                </Box>
-
-                <Button
-                  variant="contained"
-                  size="large"
-                  disabled={selectedSymptoms.length === 0 || loading}
-                  onClick={handleAnalyze}
-                  endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
-                  sx={{
-                    mt: 'auto',
-                    py: 1.5,
-                    background: 'linear-gradient(45deg, #2563eb, #7c3aed)',
-                    boxShadow: '0 8px 16px -4px rgba(37, 99, 235, 0.2)',
-                    transition: 'all 0.2s',
-                    '&:hover': {
-                      transform: 'translateY(-1px)',
-                      boxShadow: '0 12px 20px -4px rgba(37, 99, 235, 0.3)',
-                    },
-                    '&:active': {
-                      transform: 'translateY(0)',
-                    },
-                  }}
-                >
-                  {loading ? 'Analyzing...' : 'Analyze Symptoms'}
-                </Button>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card
-              sx={{
-                height: '100%',
-                minHeight: 480,
-                position: 'relative',
-                overflow: 'visible',
-                width: '100%',
-                '&::before': {
-                  content: '""',
-                  position: 'absolute',
-                  top: -2,
-                  left: -2,
-                  right: -2,
-                  bottom: -2,
-                  background: 'linear-gradient(45deg, #7c3aed, #2563eb)',
-                  borderRadius: '18px',
-                  zIndex: -1,
-                  opacity: 0.1,
-                },
-              }}
-            >
-              <CardContent sx={{ 
-                p: { xs: 2, sm: 4 },
-                width: '100%'
-              }}>
-                <Typography
-                  variant="h4"
-                  sx={{
-                    fontWeight: 700,
-                    mb: 1,
-                    color: 'text.primary',
-                    fontSize: { xs: '1.5rem', sm: '1.75rem' },
-                  }}
-                >
-                  Analysis Results
-                </Typography>
-                {!showResults ? (
-                  <Box 
-                    sx={{ 
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      py: 8,
-                      backgroundColor: 'transparent',
-                    }}
-                  >
-                    <TimeIcon 
-                      sx={{ 
-                        fontSize: 64,
-                        color: 'text.secondary',
-                        mb: 2,
-                        opacity: 0.5,
-                      }} 
-                    />
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        color: 'text.secondary',
-                        textAlign: 'center',
-                        maxWidth: '300px',
-                      }}
-                    >
-                      Your analysis results will appear here after you submit your symptoms
-                    </Typography>
-                  </Box>
-                ) : (
-                  <Fade in={showResults} timeout={500}>
-                    <Box sx={{ backgroundColor: 'transparent' }}>
-                      <Box 
-                        sx={{ 
-                          p: 3,
-                          mb: 3,
-                          borderRadius: 2,
-                          backgroundColor: 'rgba(37, 99, 235, 0.05)',
-                          border: '1px solid',
-                          borderColor: 'primary.main',
-                        }}
-                      >
-                        <Typography variant="h6" sx={{ color: 'primary.main', mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <HospitalIcon /> Analysis Results
-                        </Typography>
-
-                        {analysisResults?.possibleConditions.length > 0 ? (
-                          <>
-                            <Alert 
-                              severity={analysisResults.urgency === 'High' ? 'error' : analysisResults.urgency === 'Medium' ? 'warning' : 'info'}
-                              sx={{ mb: 3 }}
-                            >
-                              {analysisResults.urgency === 'High' ? (
-                                'Seek immediate medical attention based on your symptoms.'
-                              ) : analysisResults.urgency === 'Medium' ? (
-                                'Consider consulting a healthcare provider soon.'
-                              ) : (
-                                'Monitor your symptoms and rest.'
-                              )}
-                            </Alert>
-
-                            {analysisResults.possibleConditions.map((condition, index) => (
-                              <Box 
-                                key={condition.disease} 
-                                sx={{ 
-                                  mb: 3,
-                                  p: 2,
-                                  borderRadius: 2,
-                                  backgroundColor: 'background.paper',
-                                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-                                }}
-                              >
-                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                                    {condition.disease}
-                                  </Typography>
-                                  <Chip 
-                                    label={`${condition.matchScore}% Match`}
-                                    color={condition.matchScore > 70 ? 'error' : condition.matchScore > 50 ? 'warning' : 'info'}
-                                    size="small"
-                                  />
-                                </Box>
-                                
-                                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                                  {condition.description}
-                                </Typography>
-
-                                <Box sx={{ mb: 2 }}>
-                                  <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                    Matching Symptoms:
-                                  </Typography>
-                                  <Stack direction="row" spacing={1} flexWrap="wrap">
-                                    {condition.matchingSymptoms.map((symptom) => (
-                                      <Chip
-                                        key={symptom}
-                                        label={symptom}
-                                        size="small"
-                                        sx={{ 
-                                          bgcolor: 'rgba(37, 99, 235, 0.1)',
-                                          color: 'primary.main',
-                                          m: 0.5
-                                        }}
-                                      />
-                                    ))}
-                                  </Stack>
-                                </Box>
-
-                                <Divider sx={{ my: 2 }} />
-
-                                <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>
-                                  Recommendations:
-                                </Typography>
-                                <Stack spacing={1}>
-                                  {condition.recommendations.map((rec, idx) => (
-                                    <Typography 
-                                      key={idx} 
-                                      variant="body2" 
-                                      sx={{ 
-                                        color: 'text.secondary',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 1
-                                      }}
-                                    >
-                                      <CheckCircleIcon sx={{ fontSize: 16, color: 'success.main' }} />
-                                      {rec}
-                                    </Typography>
-                                  ))}
-                                </Stack>
-                              </Box>
-                            ))}
-                          </>
-                        ) : (
-                          <Typography variant="body1" sx={{ color: 'text.secondary' }}>
-                            No specific conditions matched your symptoms. Please consult a healthcare provider for proper diagnosis.
-                          </Typography>
-                        )}
-
-                        <Button
-                          variant="outlined"
-                          fullWidth
-                          sx={{
-                            mt: 2,
-                            borderColor: 'primary.main',
-                            color: 'primary.main',
-                            backgroundColor: 'background.paper',
-                          }}
-                          onClick={() => {
-                            const specialty = analysisResults?.possibleConditions?.[0]?.specialty || 'General Medicine';
-                            handleFindHospitals(specialty);
-                          }}
-                        >
-                          Find Nearby Hospitals
-                        </Button>
-                      </Box>
-                    </Box>
-                  </Fade>
-                )}
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      </Box>
-      <HospitalFinder 
-        open={showHospitalFinder} 
-        onClose={() => setShowHospitalFinder(false)}
-        specialty={selectedSpecialty}
-      />
-    </>
+  const filteredSymptoms = SYMPTOMS.filter(symptom =>
+    symptom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    symptom.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
-}
+
+  const groupedSymptoms = filteredSymptoms.reduce((acc, symptom) => {
+    if (!acc[symptom.category]) {
+      acc[symptom.category] = [];
+    }
+    acc[symptom.category].push(symptom);
+    return acc;
+  }, {});
+
+  if (analyzing) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
+        <CircularProgress />
+        <Typography variant="h6" sx={{ ml: 2 }}>
+          Analyzing symptoms...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (result) {
+    return (
+      <Box sx={{ p: 3 }}>
+        <Paper elevation={3} sx={{ p: 3 }}>
+          <Typography variant="h5" gutterBottom>
+            Analysis Results
+          </Typography>
+          
+          <Alert 
+            severity={
+              result.recommendation.urgency === 'high' ? 'error' :
+              result.recommendation.urgency === 'medium' ? 'warning' : 'info'
+            }
+            sx={{ my: 2 }}
+          >
+            <Typography variant="h6">{result.recommendation.message}</Typography>
+            {result.recommendation.action}
+          </Alert>
+
+          <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+            Selected Symptoms:
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+            {result.symptoms.map(symptom => (
+              <Chip
+                key={symptom.id}
+                label={symptom.name}
+                color={getSeverityColor(symptom.severity)}
+                variant="outlined"
+              />
+            ))}
+          </Box>
+
+          <Button variant="contained" onClick={handleReset} sx={{ mt: 2 }}>
+            Check New Symptoms
+          </Button>
+        </Paper>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: 3 }}>
+      <Paper elevation={3} sx={{ p: 3 }}>
+        <Typography variant="h5" gutterBottom>
+          Symptom Checker
+        </Typography>
+        
+        <TextField
+          fullWidth
+          label="Search symptoms or categories"
+          variant="outlined"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          sx={{ mb: 3 }}
+        />
+
+        {Object.entries(groupedSymptoms).map(([category, symptoms]) => (
+          <Box key={category} sx={{ mb: 3 }}>
+            <Typography variant="h6" color="primary" gutterBottom>
+              {category}
+            </Typography>
+            <Grid container spacing={2}>
+              {symptoms.map((symptom) => (
+                <Grid item xs={12} sm={6} md={4} key={symptom.id}>
+                  <Card 
+                    variant="outlined"
+                    sx={{
+                      border: selectedSymptoms.find(s => s.id === symptom.id) 
+                        ? '2px solid' 
+                        : '1px solid',
+                      borderColor: selectedSymptoms.find(s => s.id === symptom.id)
+                        ? 'primary.main'
+                        : 'divider',
+                      cursor: 'pointer',
+                      '&:hover': {
+                        borderColor: 'primary.main',
+                      },
+                    }}
+                    onClick={() => handleSymptomToggle(symptom)}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1">
+                        {symptom.name}
+                      </Typography>
+                      <Chip
+                        size="small"
+                        label={symptom.severity}
+                        color={getSeverityColor(symptom.severity)}
+                        sx={{ mt: 1 }}
+                      />
+                    </CardContent>
+                  </Card>
+                </Grid>
+              ))}
+            </Grid>
+            <Divider sx={{ my: 2 }} />
+          </Box>
+        ))}
+
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography>
+            Selected Symptoms: {selectedSymptoms.length}
+          </Typography>
+          <Button
+            variant="contained"
+            onClick={handleAnalyze}
+            disabled={selectedSymptoms.length === 0}
+          >
+            Analyze Symptoms
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
+  );
+};
 
 export default SymptomAnalyzer;
