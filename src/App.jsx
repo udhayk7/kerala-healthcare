@@ -234,10 +234,10 @@ function App() {
                           WebkitTextFillColor: 'transparent',
                         }}
                       >
-                        Welcome to Kerala Healthcare
+                        Update the welcome message to test automatic deployment
                       </Typography>
                       <Typography variant="h6" color="text.secondary" sx={{ mb: 4 }}>
-                        Your trusted partner in healthcare management
+                        Your trusted partner in healthcare management - Serving Kerala's Healthcare Needs
                       </Typography>
                     </Box>
                   } />
