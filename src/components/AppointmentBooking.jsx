@@ -14,7 +14,6 @@ import {
   Stepper,
   Step,
   StepLabel,
-  CircularProgress,
   Card,
   CardContent,
   Stack
@@ -114,7 +113,7 @@ const AppointmentBooking = () => {
 
   const handleHospitalSelect = (event) => {
     setSelectedHospital(event.target.value);
-    setSelectedDoctor(''); // Reset doctor when hospital changes
+    setSelectedDoctor('');
   };
 
   const handleDoctorSelect = (event) => {
@@ -122,7 +121,6 @@ const AppointmentBooking = () => {
   };
 
   const handleBookAppointment = () => {
-    // In a real app, this would make an API call
     setBookingConfirmed(true);
   };
 
@@ -140,60 +138,68 @@ const AppointmentBooking = () => {
     switch (step) {
       case 0:
         return (
-          <FormControl fullWidth>
-            <InputLabel>Select Hospital</InputLabel>
-            <Select
-              value={selectedHospital}
-              label="Select Hospital"
-              onChange={handleHospitalSelect}
-            >
-              {MOCK_HOSPITALS.map((hospital) => (
-                <MenuItem key={hospital.id} value={hospital.id}>
-                  {hospital.name} - {hospital.location}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ minWidth: 120 }}>
+            <FormControl fullWidth>
+              <InputLabel id="hospital-select-label">Select Hospital</InputLabel>
+              <Select
+                labelId="hospital-select-label"
+                id="hospital-select"
+                value={selectedHospital}
+                label="Select Hospital"
+                onChange={handleHospitalSelect}
+              >
+                {MOCK_HOSPITALS.map((hospital) => (
+                  <MenuItem key={hospital.id} value={hospital.id}>
+                    {hospital.name} - {hospital.location}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         );
 
       case 1:
         return (
-          <FormControl fullWidth>
-            <InputLabel>Select Doctor</InputLabel>
-            <Select
-              value={selectedDoctor}
-              label="Select Doctor"
-              onChange={handleDoctorSelect}
-              disabled={!selectedHospital}
-            >
-              {selectedHospital && MOCK_DOCTORS[selectedHospital].map((doctor) => (
-                <MenuItem key={doctor.id} value={doctor.id}>
-                  {doctor.name} - {doctor.specialization}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+          <Box sx={{ minWidth: 120 }}>
+            <FormControl fullWidth>
+              <InputLabel id="doctor-select-label">Select Doctor</InputLabel>
+              <Select
+                labelId="doctor-select-label"
+                id="doctor-select"
+                value={selectedDoctor}
+                label="Select Doctor"
+                onChange={handleDoctorSelect}
+                disabled={!selectedHospital}
+              >
+                {selectedHospital && MOCK_DOCTORS[selectedHospital].map((doctor) => (
+                  <MenuItem key={doctor.id} value={doctor.id}>
+                    {doctor.name} - {doctor.specialization}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
         );
 
       case 2:
         return (
-          <Stack spacing={3}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
+          <LocalizationProvider dateAdapter={AdapterDayjs}>
+            <Stack spacing={3}>
               <DatePicker
                 label="Select Date"
                 value={selectedDate}
                 onChange={(newValue) => setSelectedDate(newValue)}
                 minDate={dayjs()}
-                renderInput={(params) => <TextField {...params} />}
+                slotProps={{ textField: { fullWidth: true } }}
               />
               <TimePicker
                 label="Select Time"
                 value={selectedTime}
                 onChange={(newValue) => setSelectedTime(newValue)}
-                renderInput={(params) => <TextField {...params} />}
+                slotProps={{ textField: { fullWidth: true } }}
               />
-            </LocalizationProvider>
-          </Stack>
+            </Stack>
+          </LocalizationProvider>
         );
 
       case 3:
@@ -279,11 +285,11 @@ const AppointmentBooking = () => {
           </Alert>
         )}
 
-        <Box sx={{ mb: 4 }}>
+        <Box sx={{ mb: 4, minHeight: '200px' }}>
           {getStepContent(activeStep)}
         </Box>
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
           <Button
             variant="outlined"
             disabled={activeStep === 0}
