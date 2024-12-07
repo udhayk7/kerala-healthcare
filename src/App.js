@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import { CssBaseline, AppBar, Toolbar, Typography, Button, Container } from '@mui/material';
 import PatientDashboard from './components/dashboard/PatientDashboard';
+import SymptomAnalyzer from './components/SymptomAnalyzer';
 
 // Create a theme instance
 const theme = createTheme({
@@ -35,13 +36,17 @@ function App() {
             <Button color="inherit" component={Link} to="/dashboard">
               Patient Dashboard
             </Button>
+            <Button color="inherit" component={Link} to="/symptoms">
+              Symptom Checker
+            </Button>
           </Toolbar>
         </AppBar>
 
         <Container maxWidth="lg" sx={{ mt: 4 }}>
           <Routes>
             <Route path="/dashboard" element={<PatientDashboard />} />
-            {/* Add more routes as needed */}
+            <Route path="/symptoms" element={<SymptomAnalyzer />} />
+            <Route path="/" element={<PatientDashboard />} />
           </Routes>
         </Container>
       </Router>
