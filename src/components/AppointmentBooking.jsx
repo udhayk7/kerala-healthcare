@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Paper,
@@ -16,12 +16,51 @@ import {
   StepLabel,
   CircularProgress,
   Card,
-  CardContent
+  CardContent,
+  Stack
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import axios from 'axios';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { TimePicker } from '@mui/x-date-pickers/TimePicker';
+import dayjs from 'dayjs';
+
+// Mock data
+const MOCK_HOSPITALS = [
+  { id: 1, name: 'Kerala Institute of Medical Sciences (KIMS)', location: 'Thiruvananthapuram' },
+  { id: 2, name: 'Amrita Institute of Medical Sciences', location: 'Kochi' },
+  { id: 3, name: 'Aster Medcity', location: 'Kochi' },
+  { id: 4, name: 'Lakeshore Hospital', location: 'Ernakulam' },
+  { id: 5, name: 'Baby Memorial Hospital', location: 'Calicut' }
+];
+
+const MOCK_DOCTORS = {
+  1: [
+    { id: 1, name: 'Dr. Arun Kumar', specialization: 'Cardiology' },
+    { id: 2, name: 'Dr. Priya Menon', specialization: 'Pediatrics' },
+    { id: 3, name: 'Dr. Rajesh Pillai', specialization: 'Orthopedics' }
+  ],
+  2: [
+    { id: 4, name: 'Dr. Sarah Thomas', specialization: 'Neurology' },
+    { id: 5, name: 'Dr. Mohammed Ali', specialization: 'Oncology' },
+    { id: 6, name: 'Dr. Lakshmi Nair', specialization: 'Gynecology' }
+  ],
+  3: [
+    { id: 7, name: 'Dr. John Mathew', specialization: 'Dermatology' },
+    { id: 8, name: 'Dr. Anjali Krishna', specialization: 'ENT' },
+    { id: 9, name: 'Dr. Vishnu Prasad', specialization: 'General Medicine' }
+  ],
+  4: [
+    { id: 10, name: 'Dr. Maya Sharma', specialization: 'Psychiatry' },
+    { id: 11, name: 'Dr. Deepak Menon', specialization: 'Urology' },
+    { id: 12, name: 'Dr. Fathima Zahra', specialization: 'Dentistry' }
+  ],
+  5: [
+    { id: 13, name: 'Dr. Suresh Kumar', specialization: 'Pulmonology' },
+    { id: 14, name: 'Dr. Reshma Nair', specialization: 'Ophthalmology' },
+    { id: 15, name: 'Dr. Arjun Mohan', specialization: 'Gastroenterology' }
+  ]
+};
 
 const steps = ['Select Hospital', 'Choose Doctor', 'Pick Date & Time', 'Confirm'];
 
@@ -30,46 +69,13 @@ const AppointmentBooking = () => {
   const [selectedHospital, setSelectedHospital] = useState('');
   const [selectedDoctor, setSelectedDoctor] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedTime, setSelectedTime] = useState('');
-  const [availableSlots, setAvailableSlots] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [hospitals, setHospitals] = useState([]);
-  const [doctors, setDoctors] = useState([]);
+  const [selectedTime, setSelectedTime] = useState(null);
   const [bookingConfirmed, setBookingConfirmed] = useState(false);
-
-  useEffect(() => {
-    fetchHospitals();
-  }, []);
-
-  const fetchHospitals = async () => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/hospitals');
-      setHospitals(response.data);
-    } catch (error) {
-      console.error('Error fetching hospitals:', error);
-    }
-  };
-
-  const fetchDoctors = async (hospitalId) => {
-    // In a real app, this would fetch doctors from the backend
-    const hospital = hospitals.find(h => h.id === hospitalId);
-    if (hospital && hospital.doctors) {
-      setDoctors(hospital.doctors);
-    }
-  };
-
-  const fetchAvailableSlots = async (date, doctorId) => {
-    try {
-      const response = await axios.get('http://localhost:5000/api/appointments/slots', {
-        params: { date, doctorId }
-      });
-      setAvailableSlots(response.data);
-    } catch (error) {
-      console.error('Error fetching slots:', error);
-    }
-  };
+  const [error, setError] = useState('');
 
   const handleNext = () => {
+    if (!validateStep()) return;
+    
     if (activeStep === steps.length - 1) {
       handleBookAppointment();
     } else {
@@ -77,169 +83,189 @@ const AppointmentBooking = () => {
     }
   };
 
+  const validateStep = () => {
+    setError('');
+    switch (activeStep) {
+      case 0:
+        if (!selectedHospital) {
+          setError('Please select a hospital');
+          return false;
+        }
+        break;
+      case 1:
+        if (!selectedDoctor) {
+          setError('Please select a doctor');
+          return false;
+        }
+        break;
+      case 2:
+        if (!selectedDate || !selectedTime) {
+          setError('Please select both date and time');
+          return false;
+        }
+        break;
+    }
+    return true;
+  };
+
   const handleBack = () => {
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleHospitalSelect = (hospitalId) => {
-    setSelectedHospital(hospitalId);
-    fetchDoctors(hospitalId);
+  const handleHospitalSelect = (event) => {
+    setSelectedHospital(event.target.value);
+    setSelectedDoctor(''); // Reset doctor when hospital changes
   };
 
-  const handleDateSelect = (date) => {
-    setSelectedDate(date);
-    if (selectedDoctor) {
-      fetchAvailableSlots(date, selectedDoctor);
-    }
+  const handleDoctorSelect = (event) => {
+    setSelectedDoctor(event.target.value);
   };
 
-  const handleBookAppointment = async () => {
-    setLoading(true);
-    try {
-      await axios.post('http://localhost:5000/api/appointments', {
-        hospitalId: selectedHospital,
-        doctorId: selectedDoctor,
-        date: selectedDate,
-        time: selectedTime
-      });
-      setBookingConfirmed(true);
-    } catch (error) {
-      console.error('Error booking appointment:', error);
-    }
-    setLoading(false);
+  const handleBookAppointment = () => {
+    // In a real app, this would make an API call
+    setBookingConfirmed(true);
   };
 
-  const renderStepContent = (step) => {
+  const handleReset = () => {
+    setActiveStep(0);
+    setSelectedHospital('');
+    setSelectedDoctor('');
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setBookingConfirmed(false);
+    setError('');
+  };
+
+  const getStepContent = (step) => {
     switch (step) {
       case 0:
         return (
-          <Grid container spacing={2}>
-            {hospitals.map((hospital) => (
-              <Grid item xs={12} key={hospital.id}>
-                <Card
-                  sx={{
-                    cursor: 'pointer',
-                    border: selectedHospital === hospital.id ? 2 : 0,
-                    borderColor: 'primary.main'
-                  }}
-                  onClick={() => handleHospitalSelect(hospital.id)}
-                >
-                  <CardContent>
-                    <Typography variant="h6">{hospital.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {hospital.location.address}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Specialties: {hospital.specialties.join(', ')}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <FormControl fullWidth>
+            <InputLabel>Select Hospital</InputLabel>
+            <Select
+              value={selectedHospital}
+              label="Select Hospital"
+              onChange={handleHospitalSelect}
+            >
+              {MOCK_HOSPITALS.map((hospital) => (
+                <MenuItem key={hospital.id} value={hospital.id}>
+                  {hospital.name} - {hospital.location}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         );
 
       case 1:
         return (
-          <Grid container spacing={2}>
-            {doctors.map((doctor) => (
-              <Grid item xs={12} sm={6} key={doctor.name}>
-                <Card
-                  sx={{
-                    cursor: 'pointer',
-                    border: selectedDoctor === doctor.id ? 2 : 0,
-                    borderColor: 'primary.main'
-                  }}
-                  onClick={() => setSelectedDoctor(doctor.id)}
-                >
-                  <CardContent>
-                    <Typography variant="h6">{doctor.name}</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {doctor.specialty}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Experience: {doctor.experience}
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
+          <FormControl fullWidth>
+            <InputLabel>Select Doctor</InputLabel>
+            <Select
+              value={selectedDoctor}
+              label="Select Doctor"
+              onChange={handleDoctorSelect}
+              disabled={!selectedHospital}
+            >
+              {selectedHospital && MOCK_DOCTORS[selectedHospital].map((doctor) => (
+                <MenuItem key={doctor.id} value={doctor.id}>
+                  {doctor.name} - {doctor.specialization}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         );
 
       case 2:
         return (
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={6}>
-              <LocalizationProvider dateAdapter={AdapterDateFns}>
-                <DatePicker
-                  label="Select Date"
-                  value={selectedDate}
-                  onChange={handleDateSelect}
-                  renderInput={(params) => <TextField {...params} fullWidth />}
-                  minDate={new Date()}
-                />
-              </LocalizationProvider>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Select Time</InputLabel>
-                <Select
-                  value={selectedTime}
-                  onChange={(e) => setSelectedTime(e.target.value)}
-                  label="Select Time"
-                >
-                  {Object.entries(availableSlots).map(([period, slots]) => (
-                    <MenuItem key={period} disabled>
-                      {period.toUpperCase()}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
+          <Stack spacing={3}>
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <DatePicker
+                label="Select Date"
+                value={selectedDate}
+                onChange={(newValue) => setSelectedDate(newValue)}
+                minDate={dayjs()}
+                renderInput={(params) => <TextField {...params} />}
+              />
+              <TimePicker
+                label="Select Time"
+                value={selectedTime}
+                onChange={(newValue) => setSelectedTime(newValue)}
+                renderInput={(params) => <TextField {...params} />}
+              />
+            </LocalizationProvider>
+          </Stack>
         );
 
       case 3:
+        const hospital = MOCK_HOSPITALS.find(h => h.id === selectedHospital);
+        const doctor = selectedHospital && MOCK_DOCTORS[selectedHospital].find(d => d.id === selectedDoctor);
+        
         return (
-          <Box>
-            <Typography variant="h6" gutterBottom>
-              Appointment Summary
-            </Typography>
-            <Typography>Hospital: {selectedHospital}</Typography>
-            <Typography>Doctor: {selectedDoctor}</Typography>
-            <Typography>
-              Date: {selectedDate?.toLocaleDateString()}
-            </Typography>
-            <Typography>Time: {selectedTime}</Typography>
-          </Box>
+          <Card variant="outlined">
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Appointment Details
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <Typography><strong>Hospital:</strong> {hospital?.name}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography><strong>Location:</strong> {hospital?.location}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography><strong>Doctor:</strong> {doctor?.name}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography><strong>Specialization:</strong> {doctor?.specialization}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography><strong>Date:</strong> {selectedDate?.format('MMMM D, YYYY')}</Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Typography><strong>Time:</strong> {selectedTime?.format('hh:mm A')}</Typography>
+                </Grid>
+              </Grid>
+            </CardContent>
+          </Card>
         );
 
       default:
-        return null;
+        return 'Unknown step';
     }
   };
 
   if (bookingConfirmed) {
     return (
-      <Alert severity="success">
-        <Typography variant="h6">Appointment Confirmed!</Typography>
-        <Typography>
-          Your appointment has been successfully booked. You will receive a
-          confirmation email shortly.
-        </Typography>
-      </Alert>
+      <Box sx={{ p: 3 }}>
+        <Alert severity="success" sx={{ mb: 3 }}>
+          Your appointment has been successfully booked!
+        </Alert>
+        <Card variant="outlined">
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Appointment Confirmed
+            </Typography>
+            <Typography variant="body1" paragraph>
+              Thank you for booking with Kerala Healthcare. Your appointment details have been sent to your email.
+            </Typography>
+            <Button variant="contained" onClick={handleReset}>
+              Book Another Appointment
+            </Button>
+          </CardContent>
+        </Card>
+      </Box>
     );
   }
 
   return (
     <Box sx={{ p: 3 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
+      <Paper elevation={3} sx={{ p: 4 }}>
+        <Typography variant="h5" gutterBottom align="center" sx={{ mb: 4 }}>
           Book an Appointment
         </Typography>
 
-        <Stepper activeStep={activeStep} sx={{ my: 4 }}>
+        <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
           {steps.map((label) => (
             <Step key={label}>
               <StepLabel>{label}</StepLabel>
@@ -247,33 +273,29 @@ const AppointmentBooking = () => {
           ))}
         </Stepper>
 
-        <Box sx={{ mt: 4, mb: 2 }}>{renderStepContent(activeStep)}</Box>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+        <Box sx={{ mb: 4 }}>
+          {getStepContent(activeStep)}
+        </Box>
+
+        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Button
+            variant="outlined"
             disabled={activeStep === 0}
             onClick={handleBack}
-            sx={{ mr: 1 }}
           >
             Back
           </Button>
           <Button
             variant="contained"
             onClick={handleNext}
-            disabled={
-              loading ||
-              (activeStep === 0 && !selectedHospital) ||
-              (activeStep === 1 && !selectedDoctor) ||
-              (activeStep === 2 && (!selectedDate || !selectedTime))
-            }
           >
-            {loading ? (
-              <CircularProgress size={24} />
-            ) : activeStep === steps.length - 1 ? (
-              'Confirm Booking'
-            ) : (
-              'Next'
-            )}
+            {activeStep === steps.length - 1 ? 'Confirm Booking' : 'Next'}
           </Button>
         </Box>
       </Paper>
