@@ -1,292 +1,322 @@
 import React, { useState } from 'react';
 import {
   Box,
-  Paper,
-  Typography,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
-  Button,
-  Alert,
-  Grid,
   Card,
   CardContent,
-  Chip,
-  Divider,
+  Typography,
   TextField,
+  Button,
+  Chip,
+  Stack,
+  Grid,
+  Alert,
+  CircularProgress,
   Autocomplete,
-  CircularProgress
+  Fade,
 } from '@mui/material';
+import {
+  Search as SearchIcon,
+  Add as AddIcon,
+  ArrowForward as ArrowForwardIcon,
+  LocalHospital as HospitalIcon,
+  AccessTime as TimeIcon,
+} from '@mui/icons-material';
 
-const SYMPTOMS = [
+const symptoms = [
   // General Symptoms
-  { id: 1, name: 'Fever', category: 'General', severity: 'medium' },
-  { id: 2, name: 'Fatigue', category: 'General', severity: 'low' },
-  { id: 3, name: 'Body Aches', category: 'General', severity: 'medium' },
-  { id: 4, name: 'Weakness', category: 'General', severity: 'low' },
-  { id: 5, name: 'Chills', category: 'General', severity: 'medium' },
+  { label: "Fever", category: "General", severity: "medium" },
+  { label: "Fatigue", category: "General", severity: "low" },
+  { label: "Body Aches", category: "General", severity: "medium" },
+  { label: "Weakness", category: "General", severity: "low" },
+  { label: "Chills", category: "General", severity: "medium" },
+  { label: "Night Sweats", category: "General", severity: "medium" },
   
   // Respiratory Symptoms
-  { id: 6, name: 'Cough', category: 'Respiratory', severity: 'medium' },
-  { id: 7, name: 'Shortness of breath', category: 'Respiratory', severity: 'high' },
-  { id: 8, name: 'Sore throat', category: 'Respiratory', severity: 'low' },
-  { id: 9, name: 'Runny nose', category: 'Respiratory', severity: 'low' },
-  { id: 10, name: 'Chest pain', category: 'Respiratory', severity: 'high' },
+  { label: "Cough", category: "Respiratory", severity: "medium" },
+  { label: "Shortness of Breath", category: "Respiratory", severity: "high" },
+  { label: "Sore Throat", category: "Respiratory", severity: "low" },
+  { label: "Runny Nose", category: "Respiratory", severity: "low" },
+  { label: "Chest Pain", category: "Respiratory", severity: "high" },
+  { label: "Wheezing", category: "Respiratory", severity: "high" },
+  { label: "Nasal Congestion", category: "Respiratory", severity: "low" },
+  { label: "Difficulty Breathing", category: "Respiratory", severity: "high" },
   
   // Gastrointestinal Symptoms
-  { id: 11, name: 'Nausea', category: 'Gastrointestinal', severity: 'medium' },
-  { id: 12, name: 'Vomiting', category: 'Gastrointestinal', severity: 'medium' },
-  { id: 13, name: 'Diarrhea', category: 'Gastrointestinal', severity: 'medium' },
-  { id: 14, name: 'Abdominal pain', category: 'Gastrointestinal', severity: 'high' },
-  { id: 15, name: 'Loss of appetite', category: 'Gastrointestinal', severity: 'low' },
+  { label: "Nausea", category: "Gastrointestinal", severity: "medium" },
+  { label: "Vomiting", category: "Gastrointestinal", severity: "medium" },
+  { label: "Diarrhea", category: "Gastrointestinal", severity: "medium" },
+  { label: "Abdominal Pain", category: "Gastrointestinal", severity: "high" },
+  { label: "Loss of Appetite", category: "Gastrointestinal", severity: "low" },
+  { label: "Bloating", category: "Gastrointestinal", severity: "low" },
+  { label: "Constipation", category: "Gastrointestinal", severity: "low" },
+  { label: "Heartburn", category: "Gastrointestinal", severity: "medium" },
   
   // Neurological Symptoms
-  { id: 16, name: 'Headache', category: 'Neurological', severity: 'medium' },
-  { id: 17, name: 'Dizziness', category: 'Neurological', severity: 'medium' },
-  { id: 18, name: 'Confusion', category: 'Neurological', severity: 'high' },
-  { id: 19, name: 'Memory problems', category: 'Neurological', severity: 'high' },
-  { id: 20, name: 'Difficulty concentrating', category: 'Neurological', severity: 'medium' },
+  { label: "Headache", category: "Neurological", severity: "medium" },
+  { label: "Dizziness", category: "Neurological", severity: "medium" },
+  { label: "Confusion", category: "Neurological", severity: "high" },
+  { label: "Memory Problems", category: "Neurological", severity: "high" },
+  { label: "Difficulty Concentrating", category: "Neurological", severity: "medium" },
+  { label: "Seizures", category: "Neurological", severity: "high" },
+  { label: "Tremors", category: "Neurological", severity: "high" },
   
   // Musculoskeletal Symptoms
-  { id: 21, name: 'Joint pain', category: 'Musculoskeletal', severity: 'medium' },
-  { id: 22, name: 'Muscle pain', category: 'Musculoskeletal', severity: 'medium' },
-  { id: 23, name: 'Back pain', category: 'Musculoskeletal', severity: 'medium' },
-  { id: 24, name: 'Neck pain', category: 'Musculoskeletal', severity: 'medium' },
-  { id: 25, name: 'Stiffness', category: 'Musculoskeletal', severity: 'low' },
+  { label: "Joint Pain", category: "Musculoskeletal", severity: "medium" },
+  { label: "Muscle Pain", category: "Musculoskeletal", severity: "medium" },
+  { label: "Back Pain", category: "Musculoskeletal", severity: "medium" },
+  { label: "Neck Pain", category: "Musculoskeletal", severity: "medium" },
+  { label: "Stiffness", category: "Musculoskeletal", severity: "low" },
+  { label: "Muscle Weakness", category: "Musculoskeletal", severity: "medium" },
   
   // Skin Symptoms
-  { id: 26, name: 'Rash', category: 'Skin', severity: 'medium' },
-  { id: 27, name: 'Itching', category: 'Skin', severity: 'low' },
-  { id: 28, name: 'Skin discoloration', category: 'Skin', severity: 'medium' },
-  { id: 29, name: 'Swelling', category: 'Skin', severity: 'medium' },
-  { id: 30, name: 'Bruising', category: 'Skin', severity: 'medium' },
+  { label: "Rash", category: "Skin", severity: "medium" },
+  { label: "Itching", category: "Skin", severity: "low" },
+  { label: "Skin Discoloration", category: "Skin", severity: "medium" },
+  { label: "Swelling", category: "Skin", severity: "medium" },
+  { label: "Bruising", category: "Skin", severity: "medium" },
+  { label: "Hives", category: "Skin", severity: "medium" },
+  { label: "Dry Skin", category: "Skin", severity: "low" },
   
   // Mental Health Symptoms
-  { id: 31, name: 'Anxiety', category: 'Mental Health', severity: 'high' },
-  { id: 32, name: 'Depression', category: 'Mental Health', severity: 'high' },
-  { id: 33, name: 'Sleep problems', category: 'Mental Health', severity: 'medium' },
-  { id: 34, name: 'Mood changes', category: 'Mental Health', severity: 'medium' },
-  { id: 35, name: 'Irritability', category: 'Mental Health', severity: 'medium' }
+  { label: "Anxiety", category: "Mental Health", severity: "high" },
+  { label: "Depression", category: "Mental Health", severity: "high" },
+  { label: "Sleep Problems", category: "Mental Health", severity: "medium" },
+  { label: "Mood Changes", category: "Mental Health", severity: "medium" },
+  { label: "Irritability", category: "Mental Health", severity: "medium" },
+  { label: "Panic Attacks", category: "Mental Health", severity: "high" },
+  
+  // Additional Symptoms
+  { label: "Blurred Vision", category: "Vision", severity: "high" },
+  { label: "Eye Pain", category: "Vision", severity: "medium" },
+  { label: "Ear Pain", category: "ENT", severity: "medium" },
+  { label: "Hearing Problems", category: "ENT", severity: "high" },
+  { label: "Loss of Taste", category: "ENT", severity: "medium" },
+  { label: "Loss of Smell", category: "ENT", severity: "medium" }
 ];
 
-const getSeverityColor = (severity) => {
-  switch (severity) {
-    case 'high':
-      return 'error';
-    case 'medium':
-      return 'warning';
-    case 'low':
-      return 'success';
-    default:
-      return 'default';
-  }
-};
-
-const SymptomAnalyzer = () => {
+function SymptomAnalyzer() {
   const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState(null);
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showResults, setShowResults] = useState(false);
+  const [analysisResults, setAnalysisResults] = useState(null);
 
-  const handleSymptomToggle = (symptom) => {
-    setSelectedSymptoms(prev => {
-      const exists = prev.find(s => s.id === symptom.id);
-      if (exists) {
-        return prev.filter(s => s.id !== symptom.id);
-      } else {
-        return [...prev, symptom];
-      }
-    });
+  const handleAddSymptom = (symptom) => {
+    if (symptom && !selectedSymptoms.find(s => s.label === symptom.label)) {
+      setSelectedSymptoms([...selectedSymptoms, symptom]);
+      setInputValue('');
+    }
+  };
+
+  const handleRemoveSymptom = (symptomToRemove) => {
+    setSelectedSymptoms(selectedSymptoms.filter(symptom => symptom.label !== symptomToRemove.label));
   };
 
   const handleAnalyze = () => {
-    setAnalyzing(true);
+    setLoading(true);
     // Simulate analysis
     setTimeout(() => {
-      const severityCount = selectedSymptoms.reduce((acc, symptom) => {
-        acc[symptom.severity] = (acc[symptom.severity] || 0) + 1;
-        return acc;
-      }, {});
-
-      let recommendation;
-      const totalSymptoms = selectedSymptoms.length;
-      const highSeverity = severityCount.high || 0;
-      const mediumSeverity = severityCount.medium || 0;
-
+      const highSeverity = selectedSymptoms.filter(s => s.severity === 'high').length;
+      const mediumSeverity = selectedSymptoms.filter(s => s.severity === 'medium').length;
+      
+      let urgency = 'Low';
       if (highSeverity >= 2 || (highSeverity >= 1 && mediumSeverity >= 2)) {
-        recommendation = {
-          urgency: 'high',
-          message: 'Please seek immediate medical attention.',
-          action: 'Visit the nearest emergency room or contact your healthcare provider immediately.'
-        };
-      } else if (mediumSeverity >= 3 || (highSeverity >= 1)) {
-        recommendation = {
-          urgency: 'medium',
-          message: 'Medical consultation recommended.',
-          action: 'Schedule an appointment with your healthcare provider within 24 hours.'
-        };
-      } else {
-        recommendation = {
-          urgency: 'low',
-          message: 'Monitor your symptoms.',
-          action: 'Rest and monitor your symptoms. If they persist or worsen, consult a healthcare provider.'
-        };
+        urgency = 'High';
+      } else if (mediumSeverity >= 3 || highSeverity >= 1) {
+        urgency = 'Medium';
       }
 
-      setResult({
-        recommendation,
-        symptoms: selectedSymptoms,
-        severityBreakdown: severityCount
-      });
-      setAnalyzing(false);
+      const results = {
+        urgency,
+        recommendations: [
+          urgency === 'High' 
+            ? 'Please seek immediate medical attention.'
+            : urgency === 'Medium'
+            ? 'Consider consulting a healthcare provider soon.'
+            : 'Monitor your symptoms and rest.',
+          'Keep track of any changes in your symptoms.',
+          'Stay hydrated and get adequate rest.'
+        ],
+        categories: [...new Set(selectedSymptoms.map(s => s.category))]
+      };
+
+      setAnalysisResults(results);
+      setLoading(false);
+      setShowResults(true);
     }, 1500);
   };
 
-  const handleReset = () => {
-    setSelectedSymptoms([]);
-    setResult(null);
-    setSearchTerm('');
-  };
-
-  const filteredSymptoms = SYMPTOMS.filter(symptom =>
-    symptom.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    symptom.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const groupedSymptoms = filteredSymptoms.reduce((acc, symptom) => {
-    if (!acc[symptom.category]) {
-      acc[symptom.category] = [];
-    }
-    acc[symptom.category].push(symptom);
-    return acc;
-  }, {});
-
-  if (analyzing) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <CircularProgress />
-        <Typography variant="h6" sx={{ ml: 2 }}>
-          Analyzing symptoms...
-        </Typography>
-      </Box>
-    );
-  }
-
-  if (result) {
-    return (
-      <Box sx={{ p: 3 }}>
-        <Paper elevation={3} sx={{ p: 3 }}>
-          <Typography variant="h5" gutterBottom>
-            Analysis Results
-          </Typography>
-          
-          <Alert 
-            severity={
-              result.recommendation.urgency === 'high' ? 'error' :
-              result.recommendation.urgency === 'medium' ? 'warning' : 'info'
-            }
-            sx={{ my: 2 }}
-          >
-            <Typography variant="h6">{result.recommendation.message}</Typography>
-            {result.recommendation.action}
-          </Alert>
-
-          <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
-            Selected Symptoms:
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-            {result.symptoms.map(symptom => (
-              <Chip
-                key={symptom.id}
-                label={symptom.name}
-                color={getSeverityColor(symptom.severity)}
-                variant="outlined"
-              />
-            ))}
-          </Box>
-
-          <Button variant="contained" onClick={handleReset} sx={{ mt: 2 }}>
-            Check New Symptoms
-          </Button>
-        </Paper>
-      </Box>
-    );
-  }
-
   return (
-    <Box sx={{ p: 3 }}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
-          Symptom Checker
+    <Box sx={{ 
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center'
+    }}>
+      <Box sx={{ 
+        width: '100%',
+        maxWidth: '800px',
+        mb: 6,
+        textAlign: 'center',
+        px: { xs: 2, sm: 3 }
+      }}>
+        <Typography 
+          variant="h2" 
+          sx={{ 
+            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+            fontWeight: 800,
+            background: 'linear-gradient(to right, #2563eb, #7c3aed)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent',
+            mb: 2,
+          }}
+        >
+          AI-Powered Symptom Analysis
         </Typography>
-        
-        <TextField
-          fullWidth
-          label="Search symptoms or categories"
-          variant="outlined"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ mb: 3 }}
-        />
+      </Box>
 
-        {Object.entries(groupedSymptoms).map(([category, symptoms]) => (
-          <Box key={category} sx={{ mb: 3 }}>
-            <Typography variant="h6" color="primary" gutterBottom>
-              {category}
-            </Typography>
-            <Grid container spacing={2}>
-              {symptoms.map((symptom) => (
-                <Grid item xs={12} sm={6} md={4} key={symptom.id}>
-                  <Card 
+      <Grid container spacing={4} sx={{ maxWidth: '1200px', mx: 'auto', px: { xs: 2, sm: 3 } }}>
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', minHeight: 480 }}>
+            <CardContent>
+              <Typography variant="h5" gutterBottom>
+                Describe Your Symptoms
+              </Typography>
+
+              <Autocomplete
+                value={null}
+                onChange={(event, newValue) => handleAddSymptom(newValue)}
+                inputValue={inputValue}
+                onInputChange={(event, newInputValue) => setInputValue(newInputValue)}
+                options={symptoms.filter(symptom => 
+                  !selectedSymptoms.find(s => s.label === symptom.label)
+                )}
+                getOptionLabel={(option) => option.label}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Search symptoms"
                     variant="outlined"
-                    sx={{
-                      border: selectedSymptoms.find(s => s.id === symptom.id) 
-                        ? '2px solid' 
-                        : '1px solid',
-                      borderColor: selectedSymptoms.find(s => s.id === symptom.id)
-                        ? 'primary.main'
-                        : 'divider',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        borderColor: 'primary.main',
-                      },
-                    }}
-                    onClick={() => handleSymptomToggle(symptom)}
-                  >
-                    <CardContent>
-                      <Typography variant="subtitle1">
-                        {symptom.name}
-                      </Typography>
-                      <Chip
-                        size="small"
-                        label={symptom.severity}
-                        color={getSeverityColor(symptom.severity)}
-                        sx={{ mt: 1 }}
-                      />
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-            <Divider sx={{ my: 2 }} />
-          </Box>
-        ))}
+                    fullWidth
+                    sx={{ mb: 2 }}
+                  />
+                )}
+                renderOption={(props, option) => (
+                  <Box component="li" {...props}>
+                    <Typography variant="body1">{option.label}</Typography>
+                    <Typography variant="caption" sx={{ ml: 1, color: 'text.secondary' }}>
+                      ({option.category})
+                    </Typography>
+                  </Box>
+                )}
+              />
 
-        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography>
-            Selected Symptoms: {selectedSymptoms.length}
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={handleAnalyze}
-            disabled={selectedSymptoms.length === 0}
-          >
-            Analyze Symptoms
-          </Button>
-        </Box>
-      </Paper>
+              <Box sx={{ mt: 2, mb: 4 }}>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {selectedSymptoms.map((symptom) => (
+                    <Chip
+                      key={symptom.label}
+                      label={symptom.label}
+                      onDelete={() => handleRemoveSymptom(symptom)}
+                      color={
+                        symptom.severity === 'high' ? 'error' :
+                        symptom.severity === 'medium' ? 'warning' : 
+                        'success'
+                      }
+                      sx={{ m: 0.5 }}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+
+              <Button
+                variant="contained"
+                fullWidth
+                disabled={selectedSymptoms.length === 0 || loading}
+                onClick={handleAnalyze}
+                endIcon={loading ? <CircularProgress size={20} color="inherit" /> : <ArrowForwardIcon />}
+              >
+                {loading ? 'Analyzing...' : 'Analyze Symptoms'}
+              </Button>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        <Grid item xs={12} md={6}>
+          <Card sx={{ height: '100%', minHeight: 480 }}>
+            <CardContent>
+              <Typography variant="h5" gutterBottom>
+                Analysis Results
+              </Typography>
+
+              {!showResults ? (
+                <Box sx={{ 
+                  height: '100%', 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: 8
+                }}>
+                  <TimeIcon sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
+                  <Typography color="text.secondary">
+                    Your analysis results will appear here
+                  </Typography>
+                </Box>
+              ) : (
+                <Fade in={showResults}>
+                  <Box>
+                    <Alert 
+                      severity={
+                        analysisResults.urgency === 'High' ? 'error' :
+                        analysisResults.urgency === 'Medium' ? 'warning' :
+                        'info'
+                      }
+                      sx={{ mb: 3 }}
+                    >
+                      <Typography variant="h6">
+                        {analysisResults.urgency} Priority
+                      </Typography>
+                      {analysisResults.recommendations[0]}
+                    </Alert>
+
+                    <Typography variant="h6" gutterBottom>
+                      Recommendations:
+                    </Typography>
+                    <ul>
+                      {analysisResults.recommendations.map((rec, index) => (
+                        <li key={index}>
+                          <Typography variant="body1" sx={{ mb: 1 }}>
+                            {rec}
+                          </Typography>
+                        </li>
+                      ))}
+                    </ul>
+
+                    <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>
+                      Affected Areas:
+                    </Typography>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      {analysisResults.categories.map((category) => (
+                        <Chip
+                          key={category}
+                          label={category}
+                          color="primary"
+                          variant="outlined"
+                          sx={{ m: 0.5 }}
+                        />
+                      ))}
+                    </Stack>
+                  </Box>
+                </Fade>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
-};
+}
 
 export default SymptomAnalyzer;
